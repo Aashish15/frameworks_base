@@ -138,6 +138,8 @@ public final class BatteryService extends SystemService {
     private int mInvalidCharger;
     private int mLastInvalidCharger;
 
+    private boolean mUseSegmentedBatteryLed = false;
+
     private int mLowBatteryWarningLevel;
     private int mLowBatteryCloseWarningLevel;
     private int mShutdownBatteryTemperature;
@@ -943,6 +945,11 @@ public final class BatteryService extends SystemService {
                     com.android.internal.R.integer.config_notificationsBatteryLedOn);
             mBatteryLedOff = context.getResources().getInteger(
                     com.android.internal.R.integer.config_notificationsBatteryLedOff);
+
+            // Does a device have a segmented battery LED? In this case, we send the level
+            // in the lower 8 bits of the color and let the HAL sort it out.
+            mUseSegmentedBatteryLed = context.getResources().getBoolean(
+                    org.cyanogenmod.platform.internal.R.bool.config_useSegmentedBatteryLed);
         }
 
         private boolean isHvdcpPresent() {
@@ -985,9 +992,14 @@ public final class BatteryService extends SystemService {
 
             final int level = mBatteryProps.batteryLevel;
             final int status = mBatteryProps.batteryStatus;
+
             if (!mLightEnabled) {
                 // No lights if explicitly disabled
                 mBatteryLight.turnOff();
+            } else if (mUseSegmentedBatteryLed &&
+                    (status == BatteryManager.BATTERY_STATUS_CHARGING
+                    || status == BatteryManager.BATTERY_STATUS_FULL)) {
+                mBatteryLight.setColor(level);
             } else if (level < mLowBatteryWarningLevel) {
                 if (status == BatteryManager.BATTERY_STATUS_CHARGING) {
                     // Battery is charging and low
