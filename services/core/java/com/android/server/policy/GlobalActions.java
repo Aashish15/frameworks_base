@@ -83,6 +83,9 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.List;
 
+import static android.view.WindowManager.TAKE_SCREENSHOT_FULLSCREEN;
+import static android.view.WindowManager.TAKE_SCREENSHOT_SELECTED_REGION;
+
 /**
  * Helper to show the global actions dialog.  Each item is an {@link Action} that
  * may show depending on whether the keyguard is showing, and whether the device
@@ -106,6 +109,11 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
     private static final String GLOBAL_ACTION_KEY_LOCKDOWN = "lockdown";
     private static final String GLOBAL_ACTION_KEY_VOICEASSIST = "voiceassist";
     private static final String GLOBAL_ACTION_KEY_ASSIST = "assist";
+
+    private final Object mScreenshotLock = new Object();
+    private ServiceConnection mScreenshotConnection = null;
+    private int mScreenshotFullscreen = TAKE_SCREENSHOT_FULLSCREEN;
+    private int mScreenshotSelectedRegion = TAKE_SCREENSHOT_SELECTED_REGION;
 
     private final Context mContext;
     private final WindowManagerFuncs mWindowManagerFuncs;
@@ -390,6 +398,15 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
                     R.string.global_action_reboot);
         }
 
+            public void onPress() {
+                if (Settings.System.getInt(mContext.getContentResolver(),
+                      Settings.System.SCREENSHOT_TYPE, 0) == 1) {
+                   takeScreenshot(mScreenshotSelectedRegion);
+                } else {
+                   takeScreenshot(mScreenshotFullscreen);
+                }
+            }
+
         @Override
         public boolean showDuringKeyguard() {
             return true;
@@ -621,6 +638,32 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
             }
         }
     }
+
+    class ScreenshotRunnable implements Runnable {
+        private int mScreenshotFullscreen = TAKE_SCREENSHOT_FULLSCREEN;
+        private int mScreenshotSelectedRegion = TAKE_SCREENSHOT_SELECTED_REGION;
+
+        public void setScreenshotType(int screenshotType) {
+            if (Settings.System.getInt(mContext.getContentResolver(),
+                Settings.System.SCREENSHOT_TYPE, 0) == 1) {
+            mScreenshotSelectedRegion = screenshotType;
+            } else {
+            mScreenshotFullscreen = screenshotType;
+            }
+        }
+
+        @Override
+        public void run() {
+        if (Settings.System.getInt(mContext.getContentResolver(),
+              Settings.System.SCREENSHOT_TYPE, 0) == 1) {
+           takeScreenshot(mScreenshotSelectedRegion);
+        } else {
+           takeScreenshot(mScreenshotFullscreen);
+           }
+        }
+    }
+
+    private final ScreenshotRunnable mScreenshotRunnable = new ScreenshotRunnable();
 
     private void prepareDialog() {
         refreshSilentMode();
