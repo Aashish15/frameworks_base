@@ -3886,6 +3886,12 @@ public final class Settings {
         public static final String STATUSBAR_CLOCK_STYLE = "statusbar_clock_style";
 
         /**
+         * Whether to allow screen record chord to take selectable screenshots
+         * @hide
+         */
+        public static final String SCREENRECORD_CHORD_TYPE = "screenrecord_chord_type";
+
+        /**
          * Shows custom date before clock time
          * 0 - No Date
          * 1 - Small Date
